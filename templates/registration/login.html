@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Log in{% endblock %}
+{% block content %}
+<div class="login-wrap">
+  <div class="card">
+    <h1>Log in to ClaimFlow</h1>
+    <form method="post">
+      {% csrf_token %}
+      {% if form.non_field_errors %}<ul class="errorlist">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      <div class="field"><label for="id_username">Username</label>{{ form.username }}</div>
+      <div class="field"><label for="id_password">Password</label>{{ form.password }}</div>
+      <input type="hidden" name="next" value="{{ next }}">
+      <button class="btn" type="submit">Log in</button>
+    </form>
+  </div>
+  <p class="demo">Demo accounts (after <code>python manage.py seed_demo</code>), password <code>claimflow-demo</code>:<br>
+    <code>clinic_staff</code> provider staff · <code>reviewer</code> claims reviewer · <code>admin</code> administrator</p>
+</div>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Claims{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Claims</h1>
+  {% if user.is_provider_staff %}<a class="btn" href="{% url 'claims:create' %}">New claim</a>{% endif %}
+</div>
+
+<form class="filters" method="get">
+  <div>{{ form.q }}</div>
+  <div>{{ form.status }}</div>
+  <button class="btn btn-secondary" type="submit">Filter</button>
+  {% if query %}<a href="{% url 'claims:list' %}">Clear</a>{% endif %}
+</form>
+
+<div class="card">
+  {% if page.object_list %}
+  <div class="table-wrap"><table>
+    <thead><tr>
+      <th>Claim</th><th>Member</th><th>Provider</th><th>Service date</th><th>Status</th>
+      <th class="num">Billed</th><th class="num">Allowed</th>
+    </tr></thead>
+    <tbody>
+    {% for claim in page %}
+      <tr>
+        <td><a class="mono" href="{% url 'claims:detail' claim.claim_number %}">{{ claim.claim_number }}</a></td>
+        <td class="mono">{{ claim.member.masked_member_id }}</td>
+        <td>{{ claim.provider.name }}</td>
+        <td>{{ claim.service_date|date:"d M Y" }}</td>
+        <td><span class="pill pill-{{ claim.status }}">{{ claim.get_status_display }}</span></td>
+        <td class="num">${{ claim.total_billed|intcomma }}</td>
+        <td class="num">{% if claim.total_allowed is not None %}${{ claim.total_allowed|intcomma }}{% else %}–{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  <div class="pagination">
+    {% if page.has_previous %}<a href="?{{ query }}{% if query %}&{% endif %}page={{ page.previous_page_number }}">← Previous</a>{% endif %}
+    <span class="sub">Page {{ page.number }} of {{ page.paginator.num_pages }} · {{ page.paginator.count }} claims</span>
+    {% if page.has_next %}<a href="?{{ query }}{% if query %}&{% endif %}page={{ page.next_page_number }}">Next →</a>{% endif %}
+  </div>
+  {% else %}
+    <p class="empty">No claims match these filters.</p>
+  {% endif %}
+</div>
+{% endblock %}

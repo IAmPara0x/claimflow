@@ -1,0 +1,36 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}ClaimFlow{% endblock %} · ClaimFlow</title>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="{% url 'claims:dashboard' %}">ClaimFlow</a>
+      {% if user.is_authenticated %}
+        <nav>
+          <a href="{% url 'claims:dashboard' %}">Dashboard</a>
+          <a href="{% url 'claims:list' %}">Claims</a>
+          {% if user.is_provider_staff %}<a href="{% url 'claims:create' %}">New claim</a>{% endif %}
+          <a href="{% url 'api-root' %}">API</a>
+        </nav>
+        <div class="who">
+          <span>{{ user.get_full_name|default:user.username }} · {{ user.get_role_display }}{% if user.provider %} · {{ user.provider.name }}{% endif %}</span>
+          <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">Log out</button></form>
+        </div>
+      {% endif %}
+    </div>
+  </header>
+  <main>
+    {% if messages %}
+      <ul class="messages">
+        {% for message in messages %}<li class="{{ message.tags }}">{{ message }}</li>{% endfor %}
+      </ul>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Dashboard</h1>
+    <p class="sub">{% if user.is_reviewer %}All submitted claims across providers{% else %}Claims for {{ user.provider.name }}{% endif %}</p>
+  </div>
+  {% if user.is_provider_staff %}<a class="btn" href="{% url 'claims:create' %}">New claim</a>{% endif %}
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="label">Total claims</div><div class="value">{{ stats.total }}</div></div>
+  <div class="stat"><div class="label">In review</div><div class="value">{{ stats.in_review }}</div></div>
+  <div class="stat"><div class="label">Approved</div><div class="value">{{ stats.approved }}</div></div>
+  <div class="stat"><div class="label">Denied</div><div class="value">{{ stats.denied }}</div></div>
+  <div class="stat"><div class="label">Approval rate</div><div class="value">{% if stats.approval_rate is not None %}{{ stats.approval_rate }}%{% else %}–{% endif %}</div></div>
+  <div class="stat"><div class="label">Auto-decided</div><div class="value">{% if stats.auto_rate is not None %}{{ stats.auto_rate }}%{% else %}–{% endif %}</div></div>
+  <div class="stat"><div class="label">Billed</div><div class="value">${{ stats.billed|default:0|floatformat:0|intcomma }}</div></div>
+  <div class="stat"><div class="label">Allowed (approved)</div><div class="value">${{ stats.allowed|default:0|floatformat:0|intcomma }}</div></div>
+</div>
+
+<div class="grid grid-2">
+  <section class="card">
+    <h2>Review queue <span class="sub">(oldest first)</span></h2>
+    {% if review_queue %}
+    <div class="table-wrap"><table>
+      <thead><tr><th>Claim</th><th>Provider</th><th>Submitted</th><th class="num">Billed</th></tr></thead>
+      <tbody>
+      {% for claim in review_queue %}
+        <tr>
+          <td><a class="mono" href="{% url 'claims:detail' claim.claim_number %}">{{ claim.claim_number }}</a></td>
+          <td>{{ claim.provider.name }}</td>
+          <td>{{ claim.submitted_at|naturaltime }}</td>
+          <td class="num">${{ claim.total_billed|intcomma }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}<p class="empty">Nothing waiting for review.</p>{% endif %}
+  </section>
+
+  <section class="card">
+    <h2>Recent activity</h2>
+    {% if recent_events %}
+    <ul class="timeline">
+      {% for event in recent_events %}
+        <li>
+          <a class="mono" href="{% url 'claims:detail' event.claim.claim_number %}">{{ event.claim.claim_number }}</a>
+          {{ event.action_label }}{% if event.to_status %} → <span class="pill pill-{{ event.to_status }}">{{ event.to_status_label }}</span>{% endif %}
+          <div class="when">{{ event.actor.username|default:"rules engine" }} · {{ event.created_at|naturaltime }}</div>
+        </li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="empty">No activity yet.</p>{% endif %}
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}{{ claim.claim_number }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1><span class="mono-h">{{ claim.claim_number }}</span> <span class="pill pill-{{ claim.status }}">{{ claim.get_status_display }}</span></h1>
+    <p class="sub">{{ claim.provider.name }} · service on {{ claim.service_date|date:"d M Y" }}</p>
+  </div>
+  {% if can_edit %}
+  <div class="actions">
+    <a class="btn btn-secondary" href="{% url 'claims:edit' claim.claim_number %}">Edit draft</a>
+    <form method="post" action="{% url 'claims:submit' claim.claim_number %}">{% csrf_token %}
+      <button class="btn" type="submit">Submit claim</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+
+<div class="grid grid-2">
+  <div>
+    <section class="card">
+      <h2>Claim details</h2>
+      <dl class="meta">
+        <dt>Member</dt><dd>{{ claim.member.full_name }} <span class="mono">({{ claim.member.member_id }})</span></dd>
+        <dt>Date of birth</dt><dd>{{ claim.member.date_of_birth|date:"d M Y" }}</dd>
+        <dt>Provider</dt><dd>{{ claim.provider.name }} · NPI <span class="mono">{{ claim.provider.npi }}</span></dd>
+        <dt>Created by</dt><dd>{{ claim.created_by.get_full_name|default:claim.created_by.username }}</dd>
+        <dt>Diagnoses</dt>
+        <dd>{% for dx in claim.diagnoses.all %}<div><span class="mono">{{ dx.code }}</span> {{ dx.description }}</div>{% endfor %}</dd>
+      </dl>
+      {% if claim.decision_reason %}<div class="reason"><strong>Decision:</strong> {{ claim.decision_reason }}</div>{% endif %}
+    </section>
+
+    <section class="card">
+      <h2>Service lines</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>CPT</th><th>Description</th><th class="num">Units</th><th class="num">Billed</th><th class="num">Fee schedule</th><th class="num">Allowed</th></tr></thead>
+        <tbody>
+        {% for line in lines %}
+          <tr>
+            <td class="mono">{{ line.procedure.code }}</td>
+            <td>{{ line.procedure.description }}{% if line.procedure.requires_review %} <span class="pill pill-in_review">review</span>{% endif %}</td>
+            <td class="num">{{ line.units }}</td>
+            <td class="num">${{ line.billed_amount|intcomma }}</td>
+            <td class="num">${{ line.procedure.allowed_amount|intcomma }}/unit</td>
+            <td class="num">{% if line.allowed_amount is not None %}${{ line.allowed_amount|intcomma }}{% else %}–{% endif %}</td>
+          </tr>
+        {% endfor %}
+          <tr>
+            <td colspan="3"><strong>Total</strong></td>
+            <td class="num"><strong>${{ claim.total_billed|intcomma }}</strong></td>
+            <td></td>
+            <td class="num"><strong>{% if claim.total_allowed is not None %}${{ claim.total_allowed|intcomma }}{% else %}–{% endif %}</strong></td>
+          </tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    {% if can_decide %}
+    <section class="card">
+      <h2>Review decision</h2>
+      <form method="post" action="{% url 'claims:decide' claim.claim_number %}">
+        {% csrf_token %}
+        <div class="field">
+          <label for="id_reason">Reason <span class="sub">(required when denying; shown to the provider)</span></label>
+          {{ decision_form.reason }}
+        </div>
+        <div class="actions">
+          <button class="btn" type="submit" name="decision" value="approve">Approve</button>
+          <button class="btn btn-danger" type="submit" name="decision" value="deny">Deny</button>
+        </div>
+      </form>
+    </section>
+    {% endif %}
+  </div>
+
+  <section class="card">
+    <h2>Audit trail</h2>
+    <ul class="timeline">
+      {% for event in events %}
+        <li>
+          <strong>{{ event.action_label }}</strong>
+          {% if event.to_status %}→ <span class="pill pill-{{ event.to_status }}">{{ event.to_status_label }}</span>{% endif %}
+          <div class="when">{{ event.actor.username|default:"rules engine" }} · {{ event.created_at|date:"d M Y, H:i" }}</div>
+          {% if event.note %}<div class="note">{{ event.note }}</div>{% endif %}
+          {% if event.details.rules %}
+            <ul class="rules">
+              {% for r in event.details.rules %}<li>{{ r.rule }}: {{ r.outcome }}{% if r.message %} – {{ r.message }}{% endif %}</li>{% endfor %}
+            </ul>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}{% if claim.pk %}Edit {{ claim.claim_number }}{% else %}New claim{% endif %}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% if claim.pk %}Edit draft <span class="mono">{{ claim.claim_number }}</span>{% else %}New claim{% endif %}</h1>
+    <p class="sub">Billing provider: {{ user.provider.name }}. Claims are saved as drafts; nothing is sent until you submit.</p>
+  </div>
+</div>
+
+<form method="post" novalidate>
+  {% csrf_token %}
+  <section class="card">
+    <h2>Patient and visit</h2>
+    {{ form.non_field_errors }}
+    <div class="field">
+      <label for="{{ form.member_id.id_for_label }}">{{ form.member_id.label }}</label>
+      {{ form.member_id }}
+      <div class="help">{{ form.member_id.help_text }}</div>
+      {{ form.member_id.errors }}
+    </div>
+    <div class="field">
+      <label for="{{ form.service_date.id_for_label }}">Date of service</label>
+      {{ form.service_date }}
+      {{ form.service_date.errors }}
+    </div>
+    <div class="field">
+      <label>Diagnoses (ICD-10)</label>
+      <div class="checks">{% for box in form.diagnoses %}<label>{{ box.tag }} {{ box.choice_label }}</label>{% endfor %}</div>
+      <div class="help">{{ form.diagnoses.help_text }}</div>
+      {{ form.diagnoses.errors }}
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Service lines (CPT)</h2>
+    {{ formset.management_form }}
+    {% if formset.non_form_errors %}<ul class="errorlist">{% for e in formset.non_form_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    <div class="table-wrap"><table>
+      <thead><tr><th>Procedure</th><th>Units</th><th>Billed amount ($)</th>{% if claim.pk %}<th>Remove</th>{% endif %}</tr></thead>
+      <tbody>
+      {% for line in formset %}
+        <tr>
+          <td>{{ line.id }}{{ line.procedure }}{{ line.procedure.errors }}</td>
+          <td>{{ line.units }}{{ line.units.errors }}</td>
+          <td>{{ line.billed_amount }}{{ line.billed_amount.errors }}</td>
+          {% if claim.pk %}<td>{{ line.DELETE }}</td>{% endif %}
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    <p class="sub">Leave unused rows empty.</p>
+  </section>
+
+  <div class="actions">
+    <button class="btn" type="submit">Save draft</button>
+    <a class="btn btn-secondary" href="{% if claim.pk %}{% url 'claims:detail' claim.claim_number %}{% else %}{% url 'claims:list' %}{% endif %}">Cancel</a>
+  </div>
+</form>
+{% endblock %}
